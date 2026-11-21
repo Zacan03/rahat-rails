@@ -1,0 +1,181 @@
+openapi: 3.1.0
+info:
+  title: Rahat Rails Prototype API
+  version: 0.1.0
+  description: >-
+    Slices A-C contract (session, scam check, document inspect, mock rails). Synthetic demo data; not a government
+    service. No real citizen records or payments.
+  x-prototype-only: true
+servers:
+  - url: /
+security: []
+paths:
+  /api/v1/session:
+    get:
+      operationId: getVerifiedSession
+      summary: Return the authenticated user's database-backed role
+      description: Returns only the caller's verified identity and active role.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Verified active application role
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [actor]
+                properties:
+                  actor:
+                    $ref: "#/components/schemas/Actor"
+              example:
+                actor:
+                  id: 00000000-0000-4000-8000-000000000001
+                  displayName: Demo Helper
+                  role: helper
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: No active database role assignment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/openapi:
+    get:
+      operationId: getOpenApiDocument
+      summary: Retrieve this OpenAPI document as JSON
+      responses:
+        "200":
+          description: OpenAPI 3.1 document
+          content:
+            application/json:
+              schema:
+                type: object
+                description: OpenAPI 3.1 specification
+  /api/v1/scam/check:
+    post:
+      operationId: checkScam
+      summary: Classify a synthetic SMS (uncertainty label, not proof) with official anti-scam sources
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [senderLabel, messageExcerpt]
+              additionalProperties: false
+              properties:
+                senderLabel: { type: string, maxLength: 60, example: Unknown }
+                messageExcerpt: { type: string, maxLength: 280, example: "Your DEMO relief Rs 12000 is ready; click https://example.invalid/claim and pay a fee" }
+      responses:
+        "200": { description: "verdict LIKELY_SCAM | UNCERTAIN | LIKELY_SAFE, signals, caveat, OFFICIAL PUBLIC ANTI-SCAM INFO sources" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { description: Role not allowed or rate limited }
+        "422": { description: Invalid input (CNIC-shaped values rejected) }
+  /api/v1/scam/{id}/false-alarm:
+    post:
+      operationId: reportScamFalseAlarm
+      summary: Flag a scam verdict as wrong (human review)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [reason], properties: { reason: { type: string, minLength: 3, maxLength: 300 } } }
+      responses:
+        "200": { description: Reported }
+        "404": { description: Not found or not yours }
+  /api/v1/documents/inspect:
+    post:
+      operationId: inspectDocument
+      summary: Interpret browser-computed blur/noise/QR metrics of a synthetic image (image never uploaded)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [blurScore, noiseInconsistency, qrSupported, qrPayload, width, height]
+              properties:
+                blurScore: { type: number }
+                noiseInconsistency: { type: number, minimum: 0, maximum: 1 }
+                qrSupported: { type: boolean }
+                qrPayload: { type: [string, "null"], maxLength: 100 }
+                width: { type: integer }
+                height: { type: integer }
+      responses:
+        "200": { description: Potential-issue flags with modest confidence; never proof of fraud }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/mock/policy-registry:
+    get:
+      operationId: mockPolicyRegistry
+      summary: Server-to-server mock policy registry (synthetic rules). Requires X-Internal-Mock-Key.
+      responses:
+        "200": { description: Synthetic policy versions and labelled sources }
+        "401": { description: Missing or invalid internal key }
+  /api/mock/nadra:
+    post:
+      operationId: mockNadraVerify
+      summary: Server-to-server MOCK identity verify (requires live consent)
+      responses:
+        "200": { description: Simulated match status }
+        "401": { description: Missing or invalid internal key }
+        "403": { description: Consent withdrawn }
+  /api/mock/raast:
+    post:
+      operationId: mockRaastDisburse
+      summary: Server-to-server MOCK disbursement preview (SIMULATED, idempotent per case)
+      responses:
+        "200": { description: MOCK-RAAST reference; no real money }
+        "401": { description: Missing or invalid internal key }
+        "403": { description: Consent withdrawn }
+        "409": { description: Case not approved }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    partnerApiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Reserved for future public partner routes; not enabled in Slice A.
+  schemas:
+    Actor:
+      type: object
+      required: [id, displayName, role]
+      properties:
+        id:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+          example: Demo Citizen
+        role:
+          type: string
+          enum: [citizen, helper, officer, admin, auditor]
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code]
+          properties:
+            code:
+              type: string
+              enum: [UNAUTHENTICATED, ROLE_FORBIDDEN]
+  responses:
+    Unauthorized:
+      description: Missing or invalid Supabase session
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"

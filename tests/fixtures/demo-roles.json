@@ -1,0 +1,27 @@
+[
+  {
+    "email": "citizen@rahat-rails.test",
+    "displayName": "Demo Citizen",
+    "role": "citizen"
+  },
+  {
+    "email": "helper@rahat-rails.test",
+    "displayName": "Demo Helper",
+    "role": "helper"
+  },
+  {
+    "email": "officer@rahat-rails.test",
+    "displayName": "Demo Officer",
+    "role": "officer"
+  },
+  {
+    "email": "admin@rahat-rails.test",
+    "displayName": "Demo Admin",
+    "role": "admin"
+  },
+  {
+    "email": "auditor@rahat-rails.test",
+    "displayName": "Demo Auditor",
+    "role": "auditor"
+  }
+]

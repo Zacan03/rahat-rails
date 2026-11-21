@@ -1,0 +1,8 @@
+Read SPEC.md and CLAUDE.md completely. Slice A and Slice B are working. Now build Slice C:
+1. Helper Mode (`/helper/families`): manage all 40 synthetic families from 1 shared phone with fast/safe switching and isolated per-citizen consent toggles.
+2. Live Consent & Take-Back (`/citizen/consent`): view, share, and immediately revoke consent; revoking consent must immediately block downstream Raast disbursement/data access and append an immutable audit log entry.
+3. Scam SMS & Fake Document Checker (`/scam-check`): classify fake "relief payment" SMS messages and check uploaded ID images for blur/tampering/QR validity with honest confidence scores and false-alarm metrics, backed by sourced BISP anti-scam RAG excerpts.
+4. Admin Rule Version Editor (`/admin/rules`): edit eligibility rules and publish v2 without code/redeploy, while ensuring existing cases retain the rule version (`v1`) they were decided under.
+5. Dual Explainability & Auditor Trace (`/auditor/logs`): citizen-friendly plain English/Urdu explanation + full technical auditor trace (hash-chained audit log, model/rule version, confidence breakdown).
+6. Low-Literacy Urdu Voice & Offline-First Mode: large icon-driven UI, Urdu toggle, browser Web Speech API (`ur-PK`) text-to-speech & speech-to-text prompts, and localStorage draft auto-save/sync for weak signal.
+7. Update `README.md` with setup instructions, architecture overview, and our model/tool selection rationale, then run lint, typecheck, tests, and `npm run build` to verify the full app passes cleanly.
