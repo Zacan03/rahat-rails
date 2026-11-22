@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-/** Browser Web Speech API only. Always optional: every flow also works with buttons/text. */
+/** Uses local speech when available, with server TTS fallback; text/buttons remain available. */
 type Rec = {
   lang: string; interimResults: boolean; maxAlternatives: number;
   onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
@@ -25,22 +25,75 @@ export function Speak({
   buttonLabel?: string;
 }) {
   const [msg, setMsg] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playbackId = useRef(0);
+
+  useEffect(() => () => {
+    playbackId.current += 1;
+    window.speechSynthesis?.cancel();
+    audioRef.current?.pause();
+    audioRef.current = null;
+  }, []);
+
   function play(lang: "ur-PK" | "en-US") {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+    const speechText = lang === "ur-PK" && urText ? urText : text;
+    const requestId = ++playbackId.current;
+    let remoteStarted = false;
+
+    const playServerTts = () => {
+      if (remoteStarted || requestId !== playbackId.current) return;
+      remoteStarted = true;
+      window.speechSynthesis?.cancel();
+      const params = new URLSearchParams({
+        lang: lang === "ur-PK" ? "ur" : "en",
+        text: speechText,
+      });
+      const audio = new Audio(`/api/tts?${params.toString()}`);
+      audioRef.current = audio;
+      audio.onended = () => {
+        if (audioRef.current === audio) audioRef.current = null;
+      };
+      audio.onerror = () => {
+        if (requestId === playbackId.current) {
+          setMsg("Voice playback failed. Please read the text or ask a helper.");
+        }
+        if (audioRef.current === audio) audioRef.current = null;
+      };
+      void audio.play().catch(() => {
+        if (requestId === playbackId.current) {
+          setMsg("Voice playback failed. Please read the text or ask a helper.");
+        }
+      });
+    };
+
+    audioRef.current?.pause();
+    audioRef.current = null;
+    if (typeof window === "undefined") {
       setMsg("Voice is not available on this device. Please read the text or ask a helper.");
       return;
     }
-    const u = new SpeechSynthesisUtterance(lang === "ur-PK" && urText ? urText : text);
-    u.lang = lang;
-    const hasVoice = window.speechSynthesis.getVoices().some((v) => v.lang.toLowerCase().startsWith(lang.slice(0, 2)));
-    if (!hasVoice && lang === "ur-PK") {
-      // never silently substitute a different voice for Urdu
-      setMsg("No Urdu voice installed on this device. Please read the Urdu text or ask a helper.");
+    if (!("speechSynthesis" in window)) {
+      playServerTts();
       return;
     }
+
     setMsg(null);
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(u);
+    try {
+      const voices = window.speechSynthesis.getVoices();
+      const hasVoice = voices.some((voice) => voice.lang.toLowerCase().startsWith(lang.slice(0, 2)));
+      if (!hasVoice) {
+        playServerTts();
+        return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(speechText);
+      utterance.lang = lang;
+      utterance.onerror = playServerTts;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      playServerTts();
+    }
   }
   if (language) {
     const isUrdu = language === "ur";

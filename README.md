@@ -34,8 +34,7 @@ npm run seed                   # 5 role accounts, policy v1 active + v2 draft, B
 npm run dev                    # http://localhost:3000 -> "One-click synthetic demo login"
 ```
 
-Demo accounts are `<role>@rahat-rails.test`; the password is `DEMO_USER_PASSWORD` or the documented fallback `DemoPass123!`
-(synthetic accounts only; set `ALLOW_DEMO_LOGIN=false` to disable the login buttons).
+Demo accounts are `<role>@rahat-rails.test`; the one-click login is available in local development and production. Its password is `DEMO_USER_PASSWORD` or the fallback `DemoPass123!`; when seeding hosted Supabase, use the same configured password.
 
 Checks: `npm run lint && npm run typecheck && npm test && npm run build`.
 Runtime verification against the real database (59 checks; resets demo cases afterwards, audit rows stay):

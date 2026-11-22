@@ -44,9 +44,13 @@ async function LoginContent({
             className="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900"
             role="alert"
           >
-            {error === "account"
-              ? "This demo account is not enabled. Contact the project administrator."
-              : "Sign-in failed. Check the synthetic demo credentials and try again."}
+            {error === "account" || error === "demo-account"
+              ? "The selected demo account has no active role assignment. Check that the demo seed ran successfully."
+              : error === "demo-login"
+                ? "Could not sign in to that demo account. Confirm it exists in Supabase Auth and that DEMO_USER_PASSWORD matches the password used to seed it (or use the DemoPass123! fallback)."
+                : error === "demo-role"
+                  ? "That demo role is not available. Choose one of the listed roles and try again."
+                  : "Sign-in failed. Check the synthetic demo credentials and try again."}
           </p>
         )}
 

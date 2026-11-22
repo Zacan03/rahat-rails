@@ -50,33 +50,43 @@ export async function login(formData: FormData) {
   redirect("/dashboard");
 }
 
-const DEMO_EMAILS: Record<string, string> = Object.fromEntries(
-  demoRoles.map((r) => [r.role, r.email]),
-);
-
 /** One-click login for the SYNTHETIC demo accounts. The password never reaches the client. */
 export async function demoLogin(formData: FormData) {
   const role = String(formData.get("role") ?? "");
-  const email = DEMO_EMAILS[role];
-  if (process.env.ALLOW_DEMO_LOGIN === "false" || !email) {
-    redirect("/login?error=credentials");
+  const demoAccount = demoRoles.find((account) => account.role === role);
+  if (!demoAccount) {
+    redirect("/login?error=demo-role");
   }
+
   const password = process.env.DEMO_USER_PASSWORD || "DemoPass123!";
   const supabase = await createServerSupabaseClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { error } = await supabase.auth.signInWithPassword({
+    email: demoAccount.email,
+    password,
+  });
   if (error) {
-    redirect("/login?error=credentials");
+    redirect("/login?error=demo-login");
   }
+
   let actor;
   try {
     actor = await getVerifiedActor(supabase);
-  } catch {
+  } catch (verificationError) {
+    if (
+      !(verificationError instanceof AuthorizationError) ||
+      verificationError.statusCode !== 403
+    ) {
+      throw verificationError;
+    }
     await supabase.auth.signOut();
-    redirect("/login?error=account");
+    redirect("/login?error=demo-account");
   }
-  if (!actor) {
-    redirect("/login?error=credentials");
+
+  if (!actor || actor.role !== role) {
+    await supabase.auth.signOut();
+    redirect("/login?error=demo-account");
   }
+
   redirect("/dashboard");
 }
 
